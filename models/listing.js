@@ -9,8 +9,8 @@ const listingSchema = new Schema({
     description: String ,
     image: {
         type: String,
-        default:"https://in.images.search.yahoo.com/search/images?p=house+images&fr=mcafee&type=E210IN714G91918&imgurl=https%3A%2F%2Fimages.pexels.com%2Fphotos%2F1396122%2Fpexels-photo-1396122.jpeg%3Fcs%3Dsrgb%26dl%3Darchitecture-bungalow-daylight-1396122.jpg%26fm%3Djpg#id=10&iurl=https%3A%2F%2Fimages.pexels.com%2Fphotos%2F1396122%2Fpexels-photo-1396122.jpeg%3Fcs%3Dsrgb%26dl%3Darchitecture-bungalow-daylight-1396122.jpg%26fm%3Djpg&action=click",
-        set: (v) => v === "" ? "https://in.images.search.yahoo.com/search/images?p=house+images&fr=mcafee&type=E210IN714G91918&imgurl=https%3A%2F%2Fimages.pexels.com%2Fphotos%2F1396122%2Fpexels-photo-1396122.jpeg%3Fcs%3Dsrgb%26dl%3Darchitecture-bungalow-daylight-1396122.jpg%26fm%3Djpg#id=10&iurl=https%3A%2F%2Fimages.pexels.com%2Fphotos%2F1396122%2Fpexels-photo-1396122.jpeg%3Fcs%3Dsrgb%26dl%3Darchitecture-bungalow-daylight-1396122.jpg%26fm%3Djpg&action=click" :v,
+        default:"https://images.unsplash.com/photo-1670589953882-b94c9cb380f5?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8aG91c2UlMjBhbmQlMjB2aWxsYXN8ZW58MHx8MHx8fDA%3D",
+        set: (v) => v === "" ? "https://images.unsplash.com/photo-1670589953882-b94c9cb380f5?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8aG91c2UlMjBhbmQlMjB2aWxsYXN8ZW58MHx8MHx8fDA%3D" :v,
     },
     price: Number,
     location: String,
