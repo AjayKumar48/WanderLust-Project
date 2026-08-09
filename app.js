@@ -5,10 +5,14 @@ const app = express();
 //  For mongoose
 const mongoose = require("mongoose");
 
-// Requiring Model
-const Listing  = require("./models/listing.js");
-
 const path = require("path");
+
+//  requiring express-session
+const session = require("express-session");
+
+// requiring connect-flash
+const flash = require("connect-flash");
+
 
 // for ejs
 app.set("view engine","ejs");
@@ -16,6 +20,7 @@ app.set("views",path.join(__dirname,"views"));
 
 // Middleware added
 app.use(express.urlencoded({extended:true}));
+
 
 //  For Methodoveride module 
 const methodOverride = require("method-override");
@@ -25,15 +30,28 @@ app.use(methodOverride("_method"));
 const ejsMate = require("ejs-mate");
 app.engine("ejs",ejsMate);
 
-// For public folder
+// For public folder( eske ander css (for all) and js(code hai for form error checking) )
 app.use(express.static(path.join(__dirname,"/public")));
 
 // These below 2 are for error middlewares and custom error messages
-const wrapAsync = require("./utils/wrapAsync.js");
 const ExpressError = require("./utils/ExpressError.js");
 
-// Requiring listingSchema for schema validation(taaki sare fields par error check ho ske)
-const {listingSchema} = require("./schema.js");
+
+//  Requiring listings from routes(restructure kr raha hai)
+const listingRouter = require("./routes/listing.js");
+
+//  Requiring reviews from routes(restructure kr raha hai)
+const reviewRouter = require("./routes/review.js");
+
+//  Requiring users from routes(restructure kr raha hai)
+const userRouter = require("./routes/user.js");
+
+//  requiring passport
+const passport = require("passport");
+//  requiring passport-local
+const LocalStrategy = require("passport-local");
+//  requiring User
+const User = require("./models/user.js");
 
 const MONGO_URL = 'mongodb://127.0.0.1:27017/wanderlust';
 
@@ -43,7 +61,6 @@ main().then(() =>{
     console.log(err);
 });
 
-
 async function main() {
     await mongoose.connect(MONGO_URL);
 }
@@ -52,79 +69,65 @@ app.get("/",(req,res) =>{
     res.send("Hi, i am root");
 });
 
-const validateListing = (req,res,next) =>{
-    let {error} = listingSchema.validate(req.body);
-    if(error){
-        let errMsg = error.details.map((el) => el.message).join(",");
-        throw new ExpressError(400,err.Msg);
-    }
-    else{
-        next();
-    }
+
+
+//  creating a sessionOptions 
+const sessionOptions = {
+    secret: "mysupersecretstring" ,
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+        expires: Date.now() + 7*24*60*60*1000,
+        maxAge: 7*24*60*60*1000,
+        httpOnly: true,
+    },
 }
+//  using sessionOptions in session 
+app.use(session(sessionOptions));
+//  using flash 
+app.use(flash());
+// A middleware that initialize passport
+app.use(passport.initialize());
+// use to identitify users as they browse from page to page
+app.use(passport.session());
+// jo bhi users aae vo authenticate ho jae
+passport.use(new LocalStrategy(User.authenticate()));
+//  for serialze user into session  and deserialze(removing info of user)
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
 
 
-// Index Route
-app.get("/listings", wrapAsync (async (req,res) =>{
-    const allListings = await Listing.find({});
-    res.render("./listings/index.ejs",{allListings});
-}));
 
-
-//New Route  and create route is below show route
-app.get("/listings/new",(req,res) =>{
-    res.render("./listings/new.ejs");
+// Middleware for flash locals
+app.use((req,res,next) => {
+    res.locals.success = req.flash("success");
+    res.locals.error = req.flash("error");
+    next();
 });
 
 
+//  demo user for testing
+// app.get("/demouser",async (req,res) =>{
+//     let fakeUser = new User({
+//         email: "delta-student@123",
+//         username: "Ajay Parashar",
+//     });
 
-//show route
-app.get("/listings/:id", wrapAsync (async (req,res) =>{
-    let {id} = req.params;
-    const listing = await Listing.findById(id);
-    res.render("listings/show.ejs",{listing});
-}));
-
-
-
-// Create Route :- Checking for errors by try and catch block
-app.post("/listings",validateListing, wrapAsync (async (req,res,next) =>{
-        const newListing = new Listing(req.body.listing);
-        await newListing.save();
-        res.redirect("/listings");
-    })
-);
-
- 
+//     let registeredUser = await User.register(fakeUser,"HelloWorld");
+//     res.send(registeredUser);
+// });
 
 
-// Edit Route
-app.get("/listings/:id/edit", wrapAsync (async (req,res) =>{
-    let {id} = req.params;
-    const listing = await Listing.findById(id);
-    res.render("listings/edit.ejs",{listing});
-}));
+//  Using this line to get all data of listing.js
+app.use("/listings", listingRouter);
 
+//  Using this line to get all data of review.js
+app.use("/listings/:id/reviews", reviewRouter);
 
+//  Using this line to get all data of user.js
+app.use("/", userRouter);
 
-// Update route
-app.put("/listings/:id",validateListing, wrapAsync (async(req,res) =>{
-    let {id} = req.params;
-    await Listing.findByIdAndUpdate(id,{...req.body.listing});
-    res.redirect(`/listings/${id}`);
-}));
-
-
-// Delete  Route
-app.delete("/listings/:id", wrapAsync (async(req,res) =>{
-    let {id} = req.params;
-    let deletedListing = await Listing.findByIdAndDelete(id);
-    console.log(deletedListing);
-    res.redirect("/listings");
-}));
-
-
-
+//  Ese delete bhi kr sakte h just normal starting code tha ye
 // app.get("/testListing",async (req,res) =>{
 //     let sampleListing = new Listing ({
 //         title: "My new Villa",
@@ -138,9 +141,6 @@ app.delete("/listings/:id", wrapAsync (async(req,res) =>{
 //     console.log("sample was saved");
 //     res.send("successful");
 // });
-
-
-
 
 
 // This is error for invalid route request

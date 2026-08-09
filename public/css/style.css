@@ -51,7 +51,7 @@ body{
 }
 
 /* Cards */
-.card{
+.listing-card{
     border: none !important;
     margin-bottom: 2rem;
 }
@@ -70,7 +70,7 @@ body{
     text-decoration: none;
 }
 
-/* This is used for hover effect. This class ka use se hum card ki image par likh bhi sakte hai */
+/* This is used for hover effect. Es class ka use se hum card ki image par likh bhi sakte hai */
 .card-img-overlay{
     opacity:0;
 }
