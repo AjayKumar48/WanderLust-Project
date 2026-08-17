@@ -1,97 +1,39 @@
 const express = require("express");
 const router = express.Router();
+//  requiring middleware for authentication
+const {isLoggedIn, isOwner, validateListing} = require("../middleware.js");
 
 // These below 2 are for error middlewares and custom error messages
 const wrapAsync = require("../utils/wrapAsync.js");
-const ExpressError = require("../utils/ExpressError.js");
-
-// Requiring listingSchema for schema validation(taaki sare fields par error check ho ske)
-const {listingSchema} = require("../schema.js");
 
 // Requiring Schema and Model
 const Listing  = require("../models/listing.js");
 
-
-// For passing errors in schema (validation error of schema) 
-// Using Joi methods (joi module is used for validation of schema)
-const validateListing = (req,res,next) => {
-    let {error} = listingSchema.validate(req.body);
-    if(error){
-        let errMsg = error.details.map((el) => el.message).join(",");    // taaki other useful message bhi error se extract ho jai
-        throw new ExpressError(400,errMsg);
-    }
-    else{
-        next();
-    }
-}
+const listingController = require("../controllers/listings.js");
 
 
-// Index Route
-router.get("/", wrapAsync (async (req,res) =>{
-    const allListings = await Listing.find({});
-    res.render("./listings/index.ejs",{allListings});
-}));
+const multer = require("multer");
+const { storage } = require("../cloudConfig.js");
+const upload = multer({ storage });
+
+// Index Route and Create route using router.route(compact tareeka likhne ka jinke bhi route path same ho use same me likhdo)
+router.route("/")
+.get(wrapAsync (listingController.index))
+.post(isLoggedIn, upload.single("listing[image]"), validateListing, wrapAsync (listingController.createListing));
+
 
 
 //New Route  and create route is below show route
-router.get("/new",(req,res) =>{
-    res.render("./listings/new.ejs");
-});
+router.get("/new",isLoggedIn, listingController.renderNewForm);
 
-
-
-//show route
-router.get("/:id", wrapAsync (async (req,res) =>{
-    let {id} = req.params;
-    const listing = await Listing.findById(id).populate("reviews");
-    if(!listing) {
-        req.flash("error", "Listing you requested for doesn't exist!");
-        return res.redirect("/listings");
-    };
-    res.render("listings/show.ejs",{listing});
-}));
-
-
-
-// Create Route :- Checking for errors by try and catch block
-router.post("/",validateListing, wrapAsync (async (req,res,next) =>{
-        const newListing = new Listing(req.body.listing);
-        await newListing.save();
-        req.flash("success","New Listing Created Successfully!");
-        res.redirect("/listings");
-    })
-);
-
+//show route, update route and delete route using (router.route)
+router.route("/:id")
+.get( wrapAsync (listingController.showListing))
+.put(isLoggedIn, isOwner, upload.single("listing[image]"), validateListing, wrapAsync (listingController.updateListing))
+.delete(isLoggedIn, isOwner,wrapAsync (listingController.destroyListing));
 
 // Edit Route
-router.get("/:id/edit", wrapAsync (async (req,res) =>{
-    let {id} = req.params;
-    const listing = await Listing.findById(id);
-    if(!listing){
-        req.flash("error","Listing you requested to edit can't get!");
-        res.redirect("/listings");
-    };
-    res.render("listings/edit.ejs",{listing});
-}));
-
-
-// Update route
-router.put("/:id",validateListing, wrapAsync (async(req,res) => {
-    let {id} = req.params;
-    await Listing.findByIdAndUpdate(id,{...req.body.listing});
-    req.flash("success","Listing Updated Successfully!");
-    res.redirect(`/listings/${id}`);
-}));
-
-
-// Delete  Route
-router.delete("/:id", wrapAsync (async(req,res) =>{
-    let {id} = req.params;
-    let deletedListing = await Listing.findByIdAndDelete(id);
-    console.log(deletedListing);
-    req.flash("success","Listing Deleted Successfully!");
-    res.redirect("/listings");
-}));
+router.get("/:id/edit", isLoggedIn, isOwner, wrapAsync (listingController.renderEditForm));
 
 
 module.exports = router;

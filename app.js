@@ -1,3 +1,11 @@
+if(process.env.NODE_ENV != "production") {
+    require("dotenv").config();
+}
+
+const dns = require("dns");
+
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
 // For express
 const express = require("express");
 const app = express();
@@ -9,6 +17,7 @@ const path = require("path");
 
 //  requiring express-session
 const session = require("express-session");
+const { MongoStore } = require('connect-mongo');
 
 // requiring connect-flash
 const flash = require("connect-flash");
@@ -53,7 +62,9 @@ const LocalStrategy = require("passport-local");
 //  requiring User
 const User = require("./models/user.js");
 
-const MONGO_URL = 'mongodb://127.0.0.1:27017/wanderlust';
+
+// const MONGO_URL = 'mongodb://127.0.0.1:27017/wanderlust';
+const dbUrl = process.env.ATLASDB_URL;
 
 main().then(() =>{
     console.log("Connected to db");
@@ -62,18 +73,27 @@ main().then(() =>{
 });
 
 async function main() {
-    await mongoose.connect(MONGO_URL);
+    await mongoose.connect(dbUrl);
 }
 
-app.get("/",(req,res) =>{
-    res.send("Hi, i am root");
+//  store formation with some advance options
+
+const store = MongoStore.create({
+    mongoUrl: dbUrl,
+    crypto: {
+        secret: process.env.SECRET,
+    },
+    touchAfter: 24*3600,
 });
 
-
+store.on("error", () =>{
+    console.log("ERROR in Mongo Session store",err);
+});
 
 //  creating a sessionOptions 
 const sessionOptions = {
-    secret: "mysupersecretstring" ,
+    store: store,
+    secret: process.env.SECRET ,
     resave: false,
     saveUninitialized: true,
     cookie: {
@@ -81,7 +101,15 @@ const sessionOptions = {
         maxAge: 7*24*60*60*1000,
         httpOnly: true,
     },
-}
+};
+
+
+// app.get("/",(req,res) =>{
+//     res.send("Hi, i am root");
+// });
+
+
+
 //  using sessionOptions in session 
 app.use(session(sessionOptions));
 //  using flash 
@@ -102,6 +130,7 @@ passport.deserializeUser(User.deserializeUser());
 app.use((req,res,next) => {
     res.locals.success = req.flash("success");
     res.locals.error = req.flash("error");
+    res.locals.currUser = req.user;         // this is used so that we can access info of current user for the nav bar(signup and log in)
     next();
 });
 

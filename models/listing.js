@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Review = require("./review.js");
+const { urlencoded } = require("express");
 const Schema = mongoose.Schema;
 
 const listingSchema = new Schema({
@@ -9,9 +10,8 @@ const listingSchema = new Schema({
     },
     description: String ,
     image: {
-        type: String,
-        default:"https://images.unsplash.com/photo-1670589953882-b94c9cb380f5?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8aG91c2UlMjBhbmQlMjB2aWxsYXN8ZW58MHx8MHx8fDA%3D",
-        set: (v) => v === "" ? "https://images.unsplash.com/photo-1670589953882-b94c9cb380f5?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8aG91c2UlMjBhbmQlMjB2aWxsYXN8ZW58MHx8MHx8fDA%3D" :v,
+        url: String,
+        filename: String,
     },
     price: Number,
     location: String,
@@ -22,6 +22,22 @@ const listingSchema = new Schema({
             ref: "Review",
         },
     ],
+    owner:{
+        type: Schema.Types.ObjectId,
+        ref: "User",
+    },
+
+    geometry: {
+        type: {
+            type: String,
+            enum: ["Point"],
+            required: true
+        },
+        coordinates: {
+            type: [Number],
+            required: true
+        }
+    }
 });
 
 
